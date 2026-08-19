@@ -1,0 +1,16 @@
+# 秘密（绝不入库）
+**/.env
+**/.env.*
+**/*credentials*
+**/*private*key*
+**/*.pem
+**/*.key
+
+# 运行时/本地
+node_modules
+__pycache__
+*.bak*
+backups/
+.DS_Store
+outputs/
+*.log

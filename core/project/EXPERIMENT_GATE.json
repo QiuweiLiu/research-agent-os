@@ -1,0 +1,8 @@
+{
+  "status": "not_registered",
+  "rationale": "在本文件登记 smoke_passed=true、ledger_registered=true、commit 前，formal/full-scale 实验会被安全 gate 阻止；gate 行为由实现该契约的 adapter 执行。",
+  "smoke_passed": false,
+  "ledger_registered": false,
+  "commit": "",
+  "experiments": []
+}

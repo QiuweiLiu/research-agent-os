@@ -1,0 +1,6 @@
+# 全局规则（Research Agent OS · OpenCode adapter 装配入口）
+
+**下面的内容由 install 脚本从 `core/policies/CORE.md` 装配。请不要手工复制。**
+保持 `core/policies/CORE.md` 为唯一规则源；如需修改规则，改 core 侧并重跑 install。
+
+以下为 harness 无关的 Core 规则（CORE.md 全文）：

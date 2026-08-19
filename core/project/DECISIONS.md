@@ -1,0 +1,9 @@
+# DECISIONS.md — __PROJECT_NAME__
+
+重要决策追加记录（不删除历史；被替换的决策标注 superseded）。
+
+## D1 — （标题）（日期，批准人/证据）
+- 决定：...
+- 原因：...
+- 证据/参考：...
+- 状态：active / superseded（替代者：D#）
