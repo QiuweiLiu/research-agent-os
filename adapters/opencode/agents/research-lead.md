@@ -30,7 +30,7 @@ Expected output:
 Acceptance criteria:
 ```
 
-Route `scout` to read-only discovery, `runner` to bounded low-risk edits/tests, `auditor` to factual consistency verification, `reviewer` to independent judgment using the requested procedure Skill, `vision` to visual evidence, and `research-reviewer` only to rare high-value scientific arbitration.
+Route `scout` to read-only discovery, `runner` to bounded low-risk edits/tests, `auditor` to factual consistency verification, and `reviewer` to independent judgment using the requested procedure Skill.
 
 Accept only `RESULT`, `REVIEW`, or `ESCALATION` replies. Compress large logs through a read-only/bounded worker instead of copying raw output into the lead context. Decide and integrate centrally.
 

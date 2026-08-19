@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # =====================================================================
-# Research Agent OS — OpenCode adapter installer（最小版）
+# Research Agent OS — OpenCode adapter installer
 #
-# 安装到 ~/.config/opencode：AGENTS.md（CORE.md 装配）、agents/(5)、
-# skills/(9)、plugins/(2)。幂等；备份有差异的旧文件；不覆盖已有 opencode.json*；
-# 不写入任何 secret；--dry-run 零副作用。
+# 幂等安装到 ~/.config/opencode（additive：只添加/更新本项目组件，保留用户已有组件）:
+#   AGENTS.md（CORE.md 装配）、agents/(5)、skills/(9)、plugins/(2)
 #
 # 用法:
 #   ./scripts/install.sh             # 正常安装
@@ -25,6 +24,7 @@ BACKUP_DIR="${CONFIG_DIR}/backups/research-agent-os-$(date +%Y%m%d-%H%M%S)-$$"
 
 ADAPTER="$REPO_DIR/adapters/opencode"
 CORE_MD="$REPO_DIR/core/policies/CORE.md"
+PERMS="$ADAPTER/permissions.example.jsonc"
 
 echo "== Research Agent OS installer (OpenCode adapter) =="
 echo "repo:   $REPO_DIR"
@@ -35,7 +35,7 @@ echo
 if command -v opencode >/dev/null 2>&1; then
   echo "✔ opencode: $(opencode --version 2>/dev/null | head -n 1 || echo present)"
 else
-  echo "⚠ opencode not found in PATH — install it first (https://opencode.ai). Files below are still installed."
+  echo "⚠ opencode not found in PATH — install it first (https://opencode.ai)."
 fi
 echo
 
@@ -44,84 +44,111 @@ log() { printf '%-10s %s\n' "$1" "$2"; }
 same_content() {
   local src="$1" dst="$2"
   [[ -e "$dst" ]] || return 1
-  if [[ -d "$src" ]]; then
-    diff -r -q "$src" "$dst" >/dev/null 2>&1
-  else
-    diff -q "$src" "$dst" >/dev/null 2>&1
-  fi
+  diff -q "$src" "$dst" >/dev/null 2>&1
 }
 
-# install_item <name> <src> <dst> —— 文件/目录幂等安装
-install_item() {
+# --- Additive file install: copies src to dst; backups only if diff exists.
+file_install() {
   local name="$1" src="$2" dst="$3"
-  if [[ -z "$src" || -z "$dst" || "$src" == "/" || "$dst" == "/" || "$src" == "$dst" ]]; then
-    echo "internal error: refusing src='$src' dst='$dst'" >&2
-    exit 1
+  if [[ -z "$src" || -z "$dst" || "$src" == "/" || "$dst" == "/" ]]; then
+    echo "internal error: refusing src='$src' dst='$dst'" >&2; exit 1
   fi
   if same_content "$src" "$dst"; then
-    log "SKIP" "$name already installed and identical"
+    log "SKIP" "$name (identical)"
     return
   fi
   if [[ -e "$dst" ]]; then
-    if [[ "$DRY_RUN" == "1" ]]; then
-      log "BACKUP" "$name -> $BACKUP_DIR/$(basename "$dst")"
+    [[ "$DRY_RUN" == "1" ]] && { log "BACKUP" "$name"; return; }
+    mkdir -p "$BACKUP_DIR"
+    cp "$dst" "$BACKUP_DIR/$(basename "$dst")"
+    log "BACKUP" "$name"
+  fi
+  [[ "$DRY_RUN" == "1" ]] && { log "INSTALL" "$name"; return; }
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+  log "INSTALL" "$name"
+}
+
+# --- Additive directory install: iterates over src files, installs each into dst.
+#     Does NOT rm -rf dst; leaves any pre-existing files untouched.
+dir_install_items() {
+  local label="$1" srcdir="$2" dstdir="$3"
+  if [[ ! -d "$srcdir" ]]; then
+    echo "internal error: srcdir missing: $srcdir" >&2; exit 1
+  fi
+  shopt -s nullglob dotglob
+  for item in "$srcdir"/*; do
+    local base
+    base="$(basename "$item")"
+    [[ "$base" == "." || "$base" == ".." ]] && continue
+    if [[ -d "$item" ]]; then
+      # 子目录：递归复制（例如 code-reviewer/references/）
+      # 用 rsync-like 方式：先备份目标子目录（如果不同）
+      if [[ -d "$dstdir/$base" ]]; then
+        if diff -r -q "$item" "$dstdir/$base" >/dev/null 2>&1; then
+          log "SKIP" "$label/$base/ (identical)"
+          continue
+        fi
+        if [[ "$DRY_RUN" == "1" ]]; then
+          log "BACKUP" "$label/$base/"
+        else
+          mkdir -p "$BACKUP_DIR"
+          cp -R "$dstdir/$base" "$BACKUP_DIR/${base}.bak"
+          rm -rf "$dstdir/$base"
+          cp -R "$item" "$dstdir/$base"
+          log "INSTALL" "$label/$base/"
+        fi
+      else
+        [[ "$DRY_RUN" == "1" ]] && { log "INSTALL" "$label/$base/"; continue; }
+        mkdir -p "$dstdir"
+        cp -R "$item" "$dstdir/$base"
+        log "INSTALL" "$label/$base/"
+      fi
     else
-      mkdir -p "$BACKUP_DIR"
-      cp -R "$dst" "$BACKUP_DIR/$(basename "$dst")"
-      log "BACKUP" "$name (previous version backed up)"
+      file_install "$label/$base" "$item" "$dstdir/$base"
     fi
-  fi
-  if [[ -d "$src" ]]; then
-    [[ "$DRY_RUN" == "1" ]] && { log "INSTALL" "$name/"; return; }
-    rm -rf -- "$dst"
-    mkdir -p "$(dirname "$dst")"
-    cp -R "$src" "$dst"
-    log "INSTALL" "$name/"
-  else
-    [[ "$DRY_RUN" == "1" ]] && { log "INSTALL" "$name"; return; }
-    mkdir -p "$(dirname "$dst")"
-    cp "$src" "$dst"
-    log "INSTALL" "$name"
-  fi
+  done
+  shopt -u nullglob dotglob
 }
 
 echo "== Core components =="
 [[ "$DRY_RUN" == "1" ]] || mkdir -p "$CONFIG_DIR"
 
-# AGENTS.md := header + CORE.md（单一事实源装配）
+# --- AGENTS.md (assembled from CORE.md) ---
 work_agents="$(mktemp)"
 trap 'rm -f "$work_agents"' EXIT
 cat "$ADAPTER/AGENTS.md.header" > "$work_agents"
 cat "$CORE_MD" >> "$work_agents"
 if [[ -f "$CONFIG_DIR/AGENTS.md" ]] && diff -q "$work_agents" "$CONFIG_DIR/AGENTS.md" >/dev/null 2>&1; then
-  log "SKIP" "AGENTS.md (assembled from core/policies/CORE.md) identical"
+  log "SKIP" "AGENTS.md (assembled) identical"
 elif [[ "$DRY_RUN" == "1" ]]; then
   log "INSTALL" "AGENTS.md (assembled from core/policies/CORE.md)"
 else
   if [[ -e "$CONFIG_DIR/AGENTS.md" ]]; then
     mkdir -p "$BACKUP_DIR"
     cp "$CONFIG_DIR/AGENTS.md" "$BACKUP_DIR/AGENTS.md"
-    log "BACKUP" "AGENTS.md (previous version backed up)"
+    log "BACKUP" "AGENTS.md (previous)"
   fi
   cp "$work_agents" "$CONFIG_DIR/AGENTS.md"
   log "INSTALL" "AGENTS.md (assembled from core/policies/CORE.md)"
 fi
 
-install_item "agents/"  "$ADAPTER/agents"  "$CONFIG_DIR/agents"
-install_item "skills/"  "$REPO_DIR/core/skills" "$CONFIG_DIR/skills"
-install_item "plugins/" "$ADAPTER/plugins" "$CONFIG_DIR/plugins"
+# --- Additive installations (do NOT replace whole directories) ---
+dir_install_items "agents"  "$ADAPTER/agents"  "$CONFIG_DIR/agents"
+dir_install_items "skills"  "$REPO_DIR/core/skills" "$CONFIG_DIR/skills"
+dir_install_items "plugins" "$ADAPTER/plugins" "$CONFIG_DIR/plugins"
 
 echo
 echo "== Global config =="
 if [[ -e "$CONFIG_DIR/opencode.json" || -e "$CONFIG_DIR/opencode.jsonc" ]]; then
   log "KEEP" "existing opencode.json* untouched (user config)"
-  log "HINT" "merge Trusted Mode permissions from adapters/opencode/permissions.example.jsonc manually"
+  log "HINT" "merge Trusted Mode permissions from $PERMS manually"
 else
   if [[ "$DRY_RUN" == "1" ]]; then
-    log "INSTALL" "opencode.json (would copy Trusted Mode baseline)"
+    log "INSTALL" "opencode.json (minimal config with Trusted Mode + default_agent: research-lead)"
   else
-    cp "$ADAPTER/permissions.example.jsonc" "$CONFIG_DIR/opencode.json"
-    log "INSTALL" "opencode.json (Trusted Mode baseline; add your provider/model)"
+    cp "$REPO_DIR/adapters/opencode/opencode.minimal.json" "$CONFIG_DIR/opencode.json"
+    log "INSTALL" "opencode.json (minimal with Trusted Mode + default_agent: research-lead)"
   fi
 fi
 

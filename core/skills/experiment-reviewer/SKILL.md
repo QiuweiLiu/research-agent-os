@@ -14,7 +14,7 @@ Act as a falsifier, not a co-author trying to make the result look better. Read 
 - Is the hypothesis stated before the result and is the independent unit clear?
 - Is treatment compared with a fair control and, where needed, a negative control or oracle?
 - Could future information, preprocessing, caching, trace reuse, or workload construction leak the answer?
-- Are data, workload, hardware, seeds, model checkpoints, scheduler objective, and compute budget comparable?
+- Are data, workload, hardware, seeds, model checkpoints, task objective, and compute budget comparable?
 - Are all relevant workloads, loads, heterogeneity levels, and failure cases represented rather than cherry-picked?
 - Are denominator, uncertainty, effect size, confidence interval, and multiple-comparison choices visible?
 - Does the proposed claim stay within the tested boundary?
@@ -23,11 +23,12 @@ Act as a falsifier, not a co-author trying to make the result look better. Read 
 
 The following items are **mandatory** when the reviewed object involves data splitting, preprocessing, metrics, baselines, or statistical testing. Missing any of these is a blocking finding (P0/P1), not a style suggestion.
 
-### Data split and temporal isolation
+### Data split and independence
 
-- Training/validation/test splits are time- or group-isolated (date-blocked / chronicle); no future information leaks into any earlier stage.
-- The **primary metric is reported date-blocked** (or per-group), never only as a pooled aggregate.
-- **Pooled metrics must not be the sole main conclusion**; they must be presented alongside group/date-blocked metrics.
+- The data has a clear **independent unit** (e.g. temporal group, subject, site, cluster, or repeated-measure structure).
+- Splitting, cross-validation, and metric aggregation respect that independent unit; no future/group information leaks into the training phase.
+- The **primary metric is reported per independent unit** (e.g. per group, per time block, per subject), never only as a pooled aggregate.
+- **Pooled metrics** must not be the sole main conclusion; they must be presented alongside per-unit metrics.
 
 ### Feature leakage
 
@@ -59,6 +60,6 @@ Unsupported claim:
 Confounders / alternative explanations:
 ```
 
-Do not silently repair the design or rewrite a negative result. Escalate hypothesis changes and high-cost decisions to `research-reviewer`.
+Do not silently repair the design or rewrite a negative result. Escalate hypothesis changes and high-cost decisions through the standard review process.
 
 ---

@@ -1,6 +1,6 @@
 ---
 name: repo-architecture
-description: Inspect repository architecture before changing core code by tracing entrypoints, call graphs, data flow, module responsibilities, interfaces, invariants, and existing abstractions. Use for cross-module changes, scheduler or predictor logic, data pipelines, refactors, and unfamiliar repositories.
+description: Inspect repository architecture before changing core code by tracing entrypoints, call graphs, data flow, module responsibilities, interfaces, invariants, and existing abstractions. Use for cross-module changes, task or prediction logic, data pipelines, refactors, and unfamiliar repositories.
 ---
 
 # Repository Architecture

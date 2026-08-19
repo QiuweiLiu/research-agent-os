@@ -42,7 +42,7 @@ per role (see `adapters/opencode/README.md`).
 ### Core runtime
 
 - **continuity** — injects `.project/HANDOFF.md` into every context compaction
-- **research-guard** — blocks destructive/secret-exposing actions; gates formal experiments
+- **research-guard** — defense-in-depth runtime guard: blocks destructive/secret-exposing actions; gates formal experiments
   on `EXPERIMENT_GATE.json` (`smoke_passed` / `ledger_registered` / `commit`)
 - **Trusted Mode** — auto-allow ordinary workspace work; explicitly deny `sudo`,
   `rm -rf`, `git reset --hard`, `git clean`, force-push, env dumps, and key-file access
@@ -50,7 +50,7 @@ per role (see `adapters/opencode/README.md`).
 ## Quick Start
 
 ```bash
-git clone <this-repo> research-agent-os
+git clone https://github.com/QiuweiLiu/research-agent-os
 cd research-agent-os
 ./scripts/install.sh              # installs the OpenCode adapter (idempotent; --dry-run to preview)
 python3 scripts/doctor.py         # READY / READY WITH WARNINGS / NOT READY

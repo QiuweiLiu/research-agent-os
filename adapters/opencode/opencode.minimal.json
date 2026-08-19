@@ -1,0 +1,80 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "research-lead",
+  "subagent_depth": 1,
+  "plugin": [],
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "env": "ask",
+      "printenv*": "ask",
+      "git commit*": "ask",
+      "git push*": "ask",
+      "git tag*": "ask",
+      "git merge*": "ask",
+      "git rebase*": "ask",
+      "git cherry-pick*": "ask",
+      "git revert*": "ask",
+      "git restore*": "ask",
+      "git checkout -- *": "ask",
+      "git reset*": "ask",
+      "rm *": "ask",
+      "ssh *": "ask",
+      "scp *": "ask",
+      "rsync *": "ask",
+      "nohup *": "ask",
+      "sudo *": "deny",
+      "rm -rf *": "deny",
+      "rm -fr *": "deny",
+      "git reset --hard*": "deny",
+      "git clean*": "deny",
+      "git push --force*": "deny",
+      "git push -f*": "deny"
+    },
+    "edit": {
+      "*": "allow",
+      "**/.env": "deny",
+      "**/.env.*": "deny",
+      "**/*credentials*": "deny",
+      "**/*private*key*": "deny",
+      "**/*.pem": "deny",
+      "**/*.key": "deny",
+      "**/*metric*": "ask",
+      "**/*baseline*": "ask",
+      "**/*ground-truth*": "ask",
+      "**/*ground_truth*": "ask",
+      "**/*evaluation*": "ask",
+      "**/.project/EXPERIMENT_GATE.json": "ask"
+    },
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny"
+    },
+    "external_directory": {
+      "*": "ask",
+      "~/Desktop/**": "allow",
+      "~/code/**": "allow",
+      "/tmp/**": "allow"
+    },
+    "doom_loop": "deny",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "lsp": "allow",
+    "skill": "allow",
+    "task": "allow",
+    "todoread": "allow",
+    "todowrite": "allow",
+    "webfetch": "allow",
+    "websearch": "allow"
+  },
+  "server": {
+    "hostname": "127.0.0.1",
+    "mdns": false,
+    "cors": []
+  },
+  "share": "disabled",
+  "snapshot": false,
+  "disabled_providers": []
+}

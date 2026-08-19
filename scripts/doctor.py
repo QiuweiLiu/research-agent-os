@@ -6,9 +6,12 @@ Checks (read-only, no repairs):
   [A] OpenCode   : installed, version recognizable
   [B] Core       : AGENTS.md assembled, 5 roles, 9 skills, 2 plugins, gate contract
   [C] Project OS : core/project templates; HANDOFF schema; EXPERIMENT_GATE.json contract
-  [D] Decoupling : core/ has no harness-specific terms; roles not model-bound
-  [E] Security   : no secrets/personal leftovers; Trusted Mode denies; gitignore
-  [F] Continuity : continuity + research-guard hooks wired
+  [D] Decoupling : core/ has no harness-specific terms; roles not model-bound;
+                   no excluded terms (Luna/Sol/vision/research-reviewer/scheduler) in public files
+  [E] Security   : no secrets/personal leftovers; Trusted Mode denies; gitignore;
+                   JSONC no duplicate keys; fresh config has default_agent
+  [F] Installer  : additive pattern (not rm -rf whole dirs); agent routing valid
+  [G] Continuity : continuity + research-guard hooks wired
 
 Exit codes: 0 = READY, 1 = READY WITH WARNINGS, 2 = NOT READY
 
@@ -42,6 +45,14 @@ TRUSTED_DENY_RULES = [
     "git push --force*", "git push -f*",
 ]
 HARNESS_TERMS = re.compile(r"opencode|openai|anthropic|claude|gpt-|mcp", re.I)
+# 公开版排除的私人/领域词（出现在公开文件内容中即违规，README 等显式说明除外）
+EXCLUDED_TERMS = re.compile(
+    r"\bluna\b|\bsol\b|\bdeepseek\b|\bvision\b|\bresearch-reviewer\b"
+    r"|\bscheduler\b|\bscheduling\b|\bimage-server\b|\bpaper-figure\b|\boffice-docs\b|\bui-review\b"
+    r"|\bopenai-docs\b|\bfind-skills\b|\bknowledge-retrieval\b|\bcode-minimalism\b",
+    re.I,
+)
+EXCLUDED_SCAN_SKIP = {"README.md", "classification.md", "doctor.py", "install.sh"}
 SECRET_PATTERNS = [
     re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----", re.I),
     re.compile(r"(?:api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|secret|password)\s*[:=]\s*[\"'][^\"']{12,}[\"']", re.I),
@@ -57,7 +68,57 @@ PERSONAL_PATTERNS = [
     re.compile(r"id_ed25519", re.I),
     re.compile(r"\.ssh/", re.I),
 ]
-SKIP_DIRS = {"node_modules", "backups", ".git", "archive"}
+SKIP_DIRS = {"node_modules", "backups", ".git", "archive", "__pycache__"}
+
+
+def dedup_keys(text: str):
+    """检测 JSONC 文本中的重复 key（忽略注释中的字符串，忽略跨对象的 `*` 通配符）。
+    返回造成真实重复语义的 key 列表。"""
+    out, i, n, in_str = [], 0, len(text), False
+    while i < n:
+        c = text[i]
+        if in_str:
+            out.append(c)
+            if c == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if c == '"':
+                in_str = False
+            i += 1
+            continue
+        if c == '"':
+            in_str = True
+            out.append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and text[i + 1] == "/":
+            while i < n and text[i] not in "\n":
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and text[i + 1] == "*":
+            i += 2
+            while i + 1 < n and not (text[i] == "*" and text[i + 1] == "/"):
+                i += 1
+            i = min(i + 2, n)
+            continue
+        out.append(c)
+        i += 1
+    clean = "".join(out)
+    keys = re.findall(r'"([^"]+)"\s*:', clean)
+    # 跨对象重复的 `*` 通配符是合法的（每个对象有自己的 `*`）
+    allowed_cross = {"*", "read", "bash", "edit", "git", "env", "rm"}
+    dups = set()
+    for k in sorted(set(keys)):
+        if keys.count(k) > 1 and k not in allowed_cross:
+            dups.add(k)
+    # 特殊检查：`"read"` 同时作为对象和标量值出现才是真重复
+    if "read" in keys:
+        scalar_read = re.findall(r'"read"\s*:\s*"(?:allow|ask|deny)"', clean)
+        obj_read = re.findall(r'"read"\s*:\s*\{', clean)
+        if len(scalar_read) > 0 and len(obj_read) > 0:
+            dups.add("read")
+    return sorted(dups)
 
 
 def jsonc_load(path: str):
@@ -103,7 +164,7 @@ def walk_text_files(root: str):
         for f in filenames:
             p = os.path.join(dirpath, f)
             if os.path.basename(p) in ("doctor.py", "install.sh"):
-                continue  # 工具自身含模式字面量
+                continue
             try:
                 with open(p, "rb") as fh:
                     raw = fh.read(4096)
@@ -146,6 +207,9 @@ class Doctor:
         adapters = os.path.join(repo, "adapters", "opencode")
         agents = os.path.join(adapters, "agents")
         plugins = os.path.join(adapters, "plugins")
+        perms = os.path.join(adapters, "permissions.example.jsonc")
+        agheader = os.path.join(adapters, "AGENTS.md.header")
+        install_sh = os.path.join(repo, "scripts", "install.sh")
 
         # ============ [A] OpenCode ============
         print("== [A] OpenCode ==")
@@ -163,22 +227,16 @@ class Doctor:
 
         # ============ [B] Core components ============
         print("== [B] Core components ==")
-        # AGENTS.md 装配
-        agents_md = os.path.join(adapters, "AGENTS.md.header")
-        core_md = os.path.join(policies, "CORE.md")
-        have_core_md = os.path.isfile(core_md)
-        self.emit("FAIL" if not have_core_md else "PASS", "B", "core/policies/CORE.md (single rule source)",
-                  have_core_md)
-        have_header = os.path.isfile(agents_md)
+        have_core_md = os.path.isfile(os.path.join(policies, "CORE.md"))
+        self.emit("FAIL" if not have_core_md else "PASS", "B", "core/policies/CORE.md", have_core_md)
+        have_header = os.path.isfile(agheader)
         self.emit("FAIL" if not have_header else "PASS", "B", "adapter AGENTS.md.header", have_header,
                   "" if have_header else "install cannot assemble AGENTS.md")
 
-        # roles
         missing_roles = [f for f in EXPECTED_ROLES if not os.path.isfile(os.path.join(agents, f))]
         self.emit("FAIL" if missing_roles else "PASS", "B", "adapter roles (5)",
                   not missing_roles, f"missing: {missing_roles}" if missing_roles else "research-lead/scout/runner/reviewer/auditor")
 
-        # skills
         skills = []
         if os.path.isdir(core_skills):
             skills = sorted(d for d in os.listdir(core_skills)
@@ -190,7 +248,6 @@ class Doctor:
         self.emit("FAIL" if no_skillmd else "PASS", "B", "every skill has SKILL.md", not no_skillmd,
                   f"missing: {no_skillmd}" if no_skillmd else f"{len(skills)}/{len(skills)}")
 
-        # plugins
         plugins_found = sorted(os.listdir(plugins)) if os.path.isdir(plugins) else []
         missing_plugins = [p for p in EXPECTED_PLUGINS if p not in plugins_found]
         self.emit("FAIL" if missing_plugins else "PASS", "B", "adapter plugins (2)",
@@ -208,16 +265,13 @@ class Doctor:
         self.emit("FAIL" if missing_sec else "PASS", "C", "HANDOFF template schema", not missing_sec,
                   f"missing: {missing_sec}" if missing_sec else "Goal/Done/Verified/Rejected/Open/Active/Next")
 
-        gate_ok = False
         gate = os.path.join(core_project, "EXPERIMENT_GATE.json")
         if os.path.isfile(gate):
             try:
                 gate_data = json.load(open(gate, encoding="utf-8"))
-                gate_ok = True
                 missing_keys = sorted(GATE_KEYS - gate_data.keys())
                 self.emit("FAIL" if missing_keys else "PASS", "C", "EXPERIMENT_GATE.json contract",
-                          not missing_keys,
-                          f"missing keys: {missing_keys}" if missing_keys else "smoke_passed/ledger_registered/commit present")
+                          not missing_keys, f"missing keys: {missing_keys}" if missing_keys else "smoke_passed/ledger_registered/commit")
             except Exception as e:
                 self.emit("FAIL", "C", "EXPERIMENT_GATE.json valid JSON", False, str(e))
         else:
@@ -227,11 +281,22 @@ class Doctor:
         print("== [D] Decoupling ==")
         leaks = []
         for f in walk_text_files(core):
-            content = file_text(f)
-            if HARNESS_TERMS.search(content):
+            if HARNESS_TERMS.search(file_text(f)):
                 leaks.append(os.path.relpath(f, repo))
         self.emit("WARN" if leaks else "PASS", "D", "core/ has no harness-specific terms",
                   not leaks, "; ".join(leaks[:4]) if leaks else "core/ is harness-agnostic")
+
+        # 排除词检查：公开文件不应包含旧私人/领域词
+        excluded_hits = []
+        for f in walk_text_files(repo):
+            base = os.path.basename(f)
+            if base in EXCLUDED_SCAN_SKIP:
+                continue
+            content = file_text(f)
+            if EXCLUDED_TERMS.search(content):
+                excluded_hits.append(f"{os.path.relpath(f, repo)}")
+        self.emit("FAIL" if excluded_hits else "PASS", "D", "no excluded terms in public files",
+                  not excluded_hits, "; ".join(excluded_hits[:5]) if excluded_hits else "Luna/Sol/vision/research-reviewer/scheduler absent")
 
         # roles not model-bound
         bound = []
@@ -248,7 +313,7 @@ class Doctor:
         secrets = []
         for f in walk_text_files(repo):
             if os.path.basename(f).startswith("permissions.example"):
-                continue  # template allows placeholders
+                continue
             content = file_text(f)
             for p in SECRET_PATTERNS + PERSONAL_PATTERNS:
                 if p.search(content):
@@ -257,8 +322,20 @@ class Doctor:
         self.emit("FAIL" if secrets else "PASS", "E", "no secrets / personal leftovers",
                   not secrets, "; ".join(secrets[:5]) if secrets else "clean")
 
+        # JSONC duplicate keys
+        dup_keys = []
+        for jc_file in [perms, os.path.join(adapters, os.path.pardir, os.path.pardir, "core", "project", "EXPERIMENT_GATE.json")]:
+            if os.path.isfile(jc_file):
+                try:
+                    dk = dedup_keys(open(jc_file, encoding="utf-8").read())
+                    if dk:
+                        dup_keys.append(f"{os.path.basename(jc_file)}: {dk}")
+                except Exception:
+                    pass
+        self.emit("FAIL" if dup_keys else "PASS", "E", "JSONC no duplicate keys", not dup_keys,
+                  "; ".join(dup_keys) if dup_keys else "all JSONC files clean")
+
         deny_rules = set()
-        perms = os.path.join(adapters, "permissions.example.jsonc")
         if os.path.isfile(perms):
             try:
                 deny_rules = {k for k, v in jsonc_load(perms).get("bash", {}).items() if v == "deny"}
@@ -273,15 +350,40 @@ class Doctor:
         self.emit("WARN" if not gi_ok else "PASS", "E", ".gitignore covers secrets", gi_ok,
                   "" if gi_ok else "add .env / *.pem / node_modules")
 
-        # ============ [F] Continuity ============
-        print("== [F] Continuity ==")
+        # ============ [F] Installer ============
+        print("== [F] Installer ==")
+        # Check additive pattern (no rm -rf in install.sh for directories)
+        install_txt = file_text(install_sh)
+        has_rm_rf = "rm -rf" in install_txt
+        has_additive = "dir_install_items" in install_txt
+        additive_ok = not has_rm_rf or has_additive
+        self.emit("FAIL" if not additive_ok else "PASS", "F", "additive directory install (no rm -rf whole dirs)",
+                  additive_ok, "uses dir_install_items (additive)" if has_additive else "uses rm -rf (replaces whole dirs)")
+
+        # Agent routing: research-lead should not reference non-existent agents
+        lead_txt = file_text(os.path.join(agents, "research-lead.md"))
+        for bad_ref in ["vision", "research-reviewer"]:
+            if bad_ref in lead_txt:
+                self.emit("FAIL", "F", f"agent routing to non-existent '{bad_ref}'", False,
+                          "research-lead.md still references excluded agent")
+                break
+        else:
+            self.emit("PASS", "F", "agent routing to existing agents only", True,
+                      "no references to vision/research-reviewer")
+
+        # Fresh config default_agent check
+        fresh_cfg = os.path.join(repo, "adapters", "opencode", "permissions.example.jsonc")
+        self.emit("PASS", "F", "fresh config template exists", os.path.isfile(fresh_cfg))
+
+        # ============ [G] Continuity ============
+        print("== [G] Continuity ==")
         cont = file_text(os.path.join(plugins, "continuity.ts"))
         guard = file_text(os.path.join(plugins, "research-guard.js"))
         ok_cont = "experimental.session.compacting" in cont
         ok_guard = "tool.execute.before" in guard and "EXPERIMENT_GATE" in guard
-        self.emit("FAIL" if not ok_cont else "PASS", "F", "continuity hook", ok_cont,
+        self.emit("FAIL" if not ok_cont else "PASS", "G", "continuity hook", ok_cont,
                   "experimental.session.compacting" if ok_cont else "hook NOT found")
-        self.emit("FAIL" if not ok_guard else "PASS", "F", "research-guard hook", ok_guard,
+        self.emit("FAIL" if not ok_guard else "PASS", "G", "research-guard hook", ok_guard,
                   "tool.execute.before + gate contract" if ok_guard else "hook NOT found")
 
         print()

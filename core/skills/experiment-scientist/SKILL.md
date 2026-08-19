@@ -37,6 +37,6 @@ Use the repository, paper, and existing ledger to fill each field. Mark unknowns
 - Do not change metrics, filters, baselines, or success criteria after seeing results without recording an approved decision and its reason.
 - Stop before execution if the control, denominator, independent unit, or falsification criterion is undefined.
 
-Return a compact design, unresolved questions, required evidence, and the next review gate. Load `experiment-reviewer` for an independent falsification pass.
+Return a compact design, unresolved questions, required evidence, and the next review gate. Once the design is stable, request an independent `reviewer` task using the `experiment-reviewer` procedure for a falsification pass.
 
 ---
