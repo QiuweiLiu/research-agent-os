@@ -39,7 +39,7 @@ else
 fi
 echo
 
-log() { printf '%-10s %s\n' "$1" "$2"; }
+log() { local msg="${2:-}"; printf '%-10s %s\n' "$1" "$msg"; }
 
 same_content() {
   local src="$1" dst="$2"

@@ -32,6 +32,7 @@
     "*": "allow",
     "**/.env": "deny",
     "**/.env.*": "deny",
+    "**/.env.example": "allow",
     "**/*credentials*": "deny",
     "**/*private*key*": "deny",
     "**/*.pem": "deny",
@@ -46,7 +47,8 @@
   "read": {
     "*": "allow",
     "*.env": "deny",
-    "*.env.*": "deny"
+    "*.env.*": "deny",
+    "*.env.example": "allow"
   },
   "external_directory": {
     "*": "ask"

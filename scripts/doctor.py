@@ -16,7 +16,10 @@ Checks (read-only, no repairs):
 Exit codes: 0 = READY, 1 = READY WITH WARNINGS, 2 = NOT READY
 
 Usage:
-  python3 scripts/doctor.py [--repo /path/to/repo]
+  python3 scripts/doctor.py                         # check repo
+  python3 scripts/doctor.py --check-installed        # also check ~/.config/opencode/ installation
+  python3 scripts/doctor.py --repo /path             # check a different repo
+  python3 scripts/doctor.py --check-installed --repo /path
 """
 
 import json
@@ -184,8 +187,9 @@ def file_text(path: str) -> str:
 
 
 class Doctor:
-    def __init__(self, repo: str):
+    def __init__(self, repo: str, check_installed: bool = False):
         self.repo = repo
+        self.check_installed = check_installed
         self.fails = 0
         self.warns = 0
 
@@ -402,6 +406,75 @@ class Doctor:
         self.emit("FAIL" if not ok_guard else "PASS", "G", "research-guard hook", ok_guard,
                   "tool.execute.before + gate contract" if ok_guard else "hook NOT found")
 
+        # ============ [H] Installation (--check-installed) ============
+        if self.check_installed:
+            print("== [H] Installation ==")
+            install_dir = os.path.expanduser("~/.config/opencode")
+            if not os.path.isdir(install_dir):
+                self.emit("FAIL", "H", "opencode config directory", False, f"{install_dir} not found — adapter not installed")
+            else:
+                # AGENTS.md
+                agents_md_inst = os.path.join(install_dir, "AGENTS.md")
+                has_ag = os.path.isfile(agents_md_inst)
+                self.emit("FAIL" if not has_ag else "PASS", "H", "AGENTS.md installed",
+                          has_ag, "" if has_ag else "missing")
+
+                # 5 roles
+                inst_agents = os.path.join(install_dir, "agents")
+                installed_roles = sorted(os.listdir(inst_agents)) if os.path.isdir(inst_agents) else []
+                missing_roles = [f for f in EXPECTED_ROLES if f not in installed_roles]
+                self.emit("FAIL" if missing_roles else "PASS", "H", "Research Agent OS roles (5)",
+                          not missing_roles,
+                          f"missing: {missing_roles}" if missing_roles else f"{len(EXPECTED_ROLES)-len(missing_roles)}/5 present")
+
+                # 9 skills
+                inst_skills = os.path.join(install_dir, "skills")
+                installed_skills = set(os.listdir(inst_skills)) if os.path.isdir(inst_skills) else set()
+                missing_skills = [s for s in EXPECTED_SKILLS if s not in installed_skills]
+                self.emit("FAIL" if missing_skills else "PASS", "H", "Core Skills (9)",
+                          not missing_skills,
+                          f"missing: {missing_skills}" if missing_skills else f"{len(EXPECTED_SKILLS)-len(missing_skills)}/9 present")
+
+                # 2 plugins
+                inst_plugins = os.path.join(install_dir, "plugins")
+                installed_plugins = set(os.listdir(inst_plugins)) if os.path.isdir(inst_plugins) else set()
+                missing_plugins = [p for p in EXPECTED_PLUGINS if p not in installed_plugins]
+                self.emit("FAIL" if missing_plugins else "PASS", "H", "Core plugins (2)",
+                          not missing_plugins,
+                          f"missing: {missing_plugins}" if missing_plugins else "continuity.ts + research-guard.js present")
+
+                # opencode.json/jsonc
+                cfg_json = os.path.join(install_dir, "opencode.json")
+                cfg_jsonc = os.path.join(install_dir, "opencode.jsonc")
+                if os.path.isfile(cfg_json):
+                    try:
+                        cfg = json.load(open(cfg_json, encoding="utf-8"))
+                        da_ok = cfg.get("default_agent") == "research-lead"
+                        perm_ok = "permission" in cfg
+                        self.emit("FAIL" if not (da_ok and perm_ok) else "PASS", "H",
+                                  "opencode.json: default_agent + permission",
+                                  da_ok and perm_ok,
+                                  ("default_agent=" + str(cfg.get("default_agent")) if not da_ok else "") +
+                                  ("; " if not da_ok and not perm_ok else "") +
+                                  ("missing permission" if not perm_ok else ""))
+                    except Exception as e:
+                        self.emit("FAIL", "H", "opencode.json parseable", False, str(e))
+                elif os.path.isfile(cfg_jsonc):
+                    try:
+                        cfg = jsonc_load(cfg_jsonc)
+                        da_ok = cfg.get("default_agent") == "research-lead"
+                        perm_ok = "permission" in cfg
+                        self.emit("FAIL" if not (da_ok and perm_ok) else "PASS", "H",
+                                  "opencode.jsonc: default_agent + permission",
+                                  da_ok and perm_ok,
+                                  ("default_agent=" + str(cfg.get("default_agent")) if not da_ok else "") +
+                                  ("; " if not da_ok and not perm_ok else "") +
+                                  ("missing permission" if not perm_ok else ""))
+                    except Exception as e:
+                        self.emit("FAIL", "H", "opencode.jsonc parseable", False, str(e))
+                else:
+                    self.emit("WARN", "H", "opencode.json/jsonc", False, "not found — install with scripts/install.sh first")
+
         print()
         if self.fails:
             print(f"NOT READY — {self.fails} failing check(s), {self.warns} warning(s)")
@@ -415,6 +488,7 @@ class Doctor:
 
 def main() -> int:
     repo = None
+    check_installed = False
     args = sys.argv[1:]
     if "-h" in args or "--help" in args:
         print(__doc__)
@@ -424,13 +498,16 @@ def main() -> int:
         if args[i] == "--repo" and i + 1 < len(args):
             repo = os.path.abspath(args[i + 1])
             i += 2
+        elif args[i] == "--check-installed":
+            check_installed = True
+            i += 1
         else:
             print(f"unknown argument: {args[i]}")
             return 2
     if repo is None:
         repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     print(f"doctor: {repo}\n")
-    return Doctor(repo).run()
+    return Doctor(repo, check_installed).run()
 
 
 if __name__ == "__main__":
