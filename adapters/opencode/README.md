@@ -45,10 +45,31 @@
 - `plugins/research-guard.js`：正式实验前校验 `.project/EXPERIMENT_GATE.json` 的
   `smoke_passed` / `ledger_registered` / `commit` 契约；拦截破坏性命令与密钥读取。
 
-## Quick Start
+## Quick Start — two scenarios
+
+### Fresh install (no existing OpenCode config)
 
 ```bash
-./scripts/install.sh          # 安装 agents/skills/plugins/AGENTS.md（幂等，--dry-run 预览）
-python3 scripts/doctor.py     # 验证安装：READY / READY WITH WARNINGS / NOT READY
-python3 scripts/init-project.py --dir <your-project>   # 生成 Project OS 控制面
+./scripts/install.sh          # installs agents/skills/plugins/AGENTS.md + opencode.json
+python3 scripts/doctor.py     # READY
+python3 scripts/init-project.py --dir <your-project>
 ```
+
+After install, add your model/provider to `~/.config/opencode/opencode.json`
+and you are ready to use `opencode` with `research-lead` as the default agent.
+
+### Existing OpenCode config
+
+If you already have `~/.config/opencode/opencode.json` or `opencode.jsonc`:
+
+```bash
+./scripts/install.sh          # installs agents/skills/plugins/AGENTS.md only (additive)
+```
+
+Then manually:
+1. Ensure `default_agent` is set to `"research-lead"` in your config.
+2. Merge the Trusted Mode permissions from `permissions.example.jsonc` into your
+   config's `"permission"` field.
+3. Run `python3 scripts/doctor.py` to verify everything is READY.
+
+The installer never overwrites your existing config.

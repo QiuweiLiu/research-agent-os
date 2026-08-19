@@ -27,7 +27,7 @@ Seeds / repetitions:
 Analysis plan:
 ```
 
-Use the repository, paper, and existing ledger to fill each field. Mark unknowns explicitly. Keep arrival traces, hardware, software, commit, config, seeds, objective, and data version fixed unless the variable is intentionally being studied.
+Use the repository, paper, and existing ledger to fill each field. Mark unknowns explicitly. Keep data/workload identity, hardware, software, commit, config, seeds, objective, and data version fixed unless the variable is intentionally being studied.
 
 ## Decision rules
 

@@ -7,6 +7,10 @@ any private configuration.
 The Core is **harness-agnostic**: the rules, skills, and project state schema stay useful if
 you change domain, change models, or switch to another agent harness.
 
+> **OpenCode compatibility:** The current reference adapter targets **OpenCode 1.x**. It is not
+> tested against OpenCode 2.0 beta. Research Guard is a **defense-in-depth runtime guard**,
+> not a sandbox — do not rely on it as the sole security boundary for untrusted code.
+
 > License: **MIT** — see [LICENSE](LICENSE).
 
 ## What you get

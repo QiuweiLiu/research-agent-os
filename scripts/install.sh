@@ -142,7 +142,13 @@ echo
 echo "== Global config =="
 if [[ -e "$CONFIG_DIR/opencode.json" || -e "$CONFIG_DIR/opencode.jsonc" ]]; then
   log "KEEP" "existing opencode.json* untouched (user config)"
-  log "HINT" "merge Trusted Mode permissions from $PERMS manually"
+  log ""
+  log "  ┌─ Manual merge needed ──────────────────────────────────────────┐"
+  log "  │ 1. Ensure default_agent is set to \"research-lead\"              │"
+  log "  │ 2. Merge Trusted Mode permissions from                         │"
+  log "  │    $PERMS"
+  log "  │    into the \"permission\" field of your opencode.json           │"
+  log "  └────────────────────────────────────────────────────────────────┘"
 else
   if [[ "$DRY_RUN" == "1" ]]; then
     log "INSTALL" "opencode.json (minimal config with Trusted Mode + default_agent: research-lead)"

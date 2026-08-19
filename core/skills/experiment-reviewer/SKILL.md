@@ -27,8 +27,9 @@ The following items are **mandatory** when the reviewed object involves data spl
 
 - The data has a clear **independent unit** (e.g. temporal group, subject, site, cluster, or repeated-measure structure).
 - Splitting, cross-validation, and metric aggregation respect that independent unit; no future/group information leaks into the training phase.
-- The **primary metric is reported per independent unit** (e.g. per group, per time block, per subject), never only as a pooled aggregate.
-- **Pooled metrics** must not be the sole main conclusion; they must be presented alongside per-unit metrics.
+- **When temporal, group, subject, site, cluster, or repeated-measure structure affects independence or aggregation**, the primary metric must be reported per independent unit, not only as a pooled aggregate.
+- **When pooling may mask important between-group differences, confounders, or leakage**, pooled metrics must be accompanied by stratified or per-unit metrics.
+- For ordinary i.i.d. tasks without such dependency structure, pooled metrics alone are acceptable as long as the independent repetition unit and variance are reported.
 
 ### Feature leakage
 
@@ -42,7 +43,7 @@ The following items are **mandatory** when the reviewed object involves data spl
 - Multiple-comparison corrections applied when relevant.
 - Effect size / confidence interval reported alongside point estimates.
 - Independent repetition unit is clear; random seeds recorded.
-- Conclusion is supported by the data; no self-deception (e.g., pooled metric hiding date leakage).
+- Conclusion is supported by the data; no self-deception (e.g., pooled metric masking dependency structure or leakage).
 
 ### Reproducibility
 

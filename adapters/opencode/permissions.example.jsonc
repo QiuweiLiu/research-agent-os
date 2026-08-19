@@ -49,10 +49,7 @@
     "*.env.*": "deny"
   },
   "external_directory": {
-    "*": "ask",
-    "~/Desktop/**": "allow",
-    "~/code/**": "allow",
-    "/tmp/**": "allow"
+    "*": "ask"
   },
   "doom_loop": "deny",
   "glob": "allow",

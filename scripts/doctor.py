@@ -8,9 +8,9 @@ Checks (read-only, no repairs):
   [C] Project OS : core/project templates; HANDOFF schema; EXPERIMENT_GATE.json contract
   [D] Decoupling : core/ has no harness-specific terms; roles not model-bound;
                    no excluded terms (Luna/Sol/vision/research-reviewer/scheduler) in public files
-  [E] Security   : no secrets/personal leftovers; Trusted Mode denies; gitignore;
-                   JSONC no duplicate keys; fresh config has default_agent
-  [F] Installer  : additive pattern (not rm -rf whole dirs); agent routing valid
+  [E] Security   : no secrets/personal leftovers; Trusted Mode denies; gitignore
+  [F] Installer  : additive pattern (not rm -rf whole dirs); agent routing valid;
+                   opencode.minimal.json valid (exists, parseable, default_agent, permission)
   [G] Continuity : continuity + research-guard hooks wired
 
 Exit codes: 0 = READY, 1 = READY WITH WARNINGS, 2 = NOT READY
@@ -324,7 +324,7 @@ class Doctor:
 
         # JSONC duplicate keys
         dup_keys = []
-        for jc_file in [perms, os.path.join(adapters, os.path.pardir, os.path.pardir, "core", "project", "EXPERIMENT_GATE.json")]:
+        for jc_file in [perms, os.path.join(repo, "core", "project", "EXPERIMENT_GATE.json")]:
             if os.path.isfile(jc_file):
                 try:
                     dk = dedup_keys(open(jc_file, encoding="utf-8").read())
@@ -372,8 +372,24 @@ class Doctor:
                       "no references to vision/research-reviewer")
 
         # Fresh config default_agent check
-        fresh_cfg = os.path.join(repo, "adapters", "opencode", "permissions.example.jsonc")
-        self.emit("PASS", "F", "fresh config template exists", os.path.isfile(fresh_cfg))
+        fresh_cfg = os.path.join(repo, "adapters", "opencode", "opencode.minimal.json")
+        if os.path.isfile(fresh_cfg):
+            try:
+                with open(fresh_cfg, encoding="utf-8") as fh:
+                    fc = json.load(fh)
+                fc_ok = True
+                fc_issues = []
+                if fc.get("default_agent") != "research-lead":
+                    fc_issues.append("default_agent != 'research-lead'")
+                if "permission" not in fc:
+                    fc_issues.append("missing 'permission' key")
+                self.emit("FAIL" if fc_issues else "PASS", "F", "opencode.minimal.json valid",
+                          not fc_issues, "; ".join(fc_issues) if fc_issues else
+                          "exists, parseable, default_agent=research-lead, permission present")
+            except Exception as e:
+                self.emit("FAIL", "F", "opencode.minimal.json parseable", False, str(e))
+        else:
+            self.emit("FAIL", "F", "opencode.minimal.json exists", False)
 
         # ============ [G] Continuity ============
         print("== [G] Continuity ==")
