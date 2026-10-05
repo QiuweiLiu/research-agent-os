@@ -1,5 +1,38 @@
 # Research Agent OS
 
+Reliable long-running AI-assisted research and engineering workflows, with project continuity, separate execution and review roles, and reproducibility gates.
+
+## Problem → Solution
+
+Long-running agents can lose project state after context compaction, overlook experimental constraints, or blur the boundary between implementation and review. Research Agent OS provides an installable workflow core and a reference OpenCode adapter to make those responsibilities explicit.
+
+| Problem | Mechanism |
+|---|---|
+| Context or session changes | Persistent `.project/` control files and `HANDOFF.md` injection at compaction |
+| Execution and review become entangled | Separate lead, scout, runner, reviewer, and auditor roles |
+| Experiments lack a reproducible record | Experiment gates, configs, commit tracking, and evidence procedures |
+| Execution scope becomes unclear | Bounded execution policies and a defense-in-depth runtime guard |
+
+## Example workflow
+
+```mermaid
+flowchart TD
+    U[User goal] --> L[research-lead: coordinate]
+    L --> S[scout: read-only reconnaissance]
+    S --> R[runner: bounded implementation / experiment]
+    R --> V[reviewer: independent review]
+    V --> A[auditor: factual verification]
+    A --> H[Project state + HANDOFF]
+    H --> N[Next context / session]
+    N --> L
+```
+
+**Use case:** Continue a research project across sessions: the scout gathers evidence, the runner implements within the agreed scope, the reviewer examines the change, and the auditor checks claims against artifacts. The handoff records the current state, constraints, and next steps. Role delegation is configurable; this diagram illustrates a workflow rather than a mandatory execution sequence.
+
+See [Quick Start](#quick-start) to install the reference adapter.
+
+## Core and compatibility
+
 A small, generic, self-contained, installable **Research Agent OS Core** for long-running
 AI-assisted research and engineering — distilled from a personal harness, published without
 any private configuration.
