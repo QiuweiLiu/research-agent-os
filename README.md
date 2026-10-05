@@ -13,6 +13,12 @@ Long-running agents can lose project state after context compaction, overlook ex
 | Experiments lack a reproducible record | Experiment gates, configs, commit tracking, and evidence procedures |
 | Execution scope becomes unclear | Bounded execution policies and a defense-in-depth runtime guard |
 
+## Who is this for?
+
+- Long-running research projects that need persistent state and explicit constraints.
+- Coding agents that continue work across contexts and sessions.
+- Workflows that need independent review and reproducible experiment records.
+
 ## Example workflow
 
 ```mermaid
