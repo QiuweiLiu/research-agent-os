@@ -1,6 +1,41 @@
-# 全局规则（Research Agent OS · OpenCode adapter 装配入口）
+# 全局规则（Research Agent OS · OpenCode adapter）
 
-**下面的内容由 install 脚本从 `core/policies/CORE.md` 装配。请不要手工复制。**
-保持 `core/policies/CORE.md` 为唯一规则源；如需修改规则，改 core 侧并重跑 install。
+**下面的 Core 规则由 install 脚本从 `core/policies/CORE.md` 装配；改规则改 core，重跑 install。**
+本 header 只放 OpenCode 专属的装配层：权威模型、角色路由、审批边界、权限与插件入口。
 
-以下为 harness 无关的 Core 规则（CORE.md 全文）：
+## Authority model
+
+- `AGENTS.md`：只定义全局边界、审批、路由触发器和 Project OS；不复制领域 checklist。
+- `Agents`：定义谁负责执行；Agent 不重新发明领域方法。
+- `Skills`：定义某类任务怎么做；同一 procedure 不重复执行两遍。
+- `Plugins / permissions`：只承担真正需要硬约束或系统 hook 的机制。
+- `.project/`：项目长期状态唯一真相源。
+
+## Agent routing
+
+- `research-lead`：唯一协调者；规划、分派、整合、边界控制、最终验收、HANDOFF。
+- `scout`：只读仓库侦察与 file/line 证据，不做科学结论。
+- `runner`：仅执行 lead 已批准 boundary 内的低风险修改与 focused tests。
+- `auditor`：核对事实、配置、seed、workload、metrics、artifacts 是否一致；不承担设计评价。
+- `reviewer`：独立判断 correctness / experiment integrity；按风险加载 procedure skill，不重复同一立场。
+- Agent 间只用 `TASK` / `RESULT` / `REVIEW` / `ESCALATION`；lead 保留最终整合责任。
+
+## 工作纪律与授权
+
+- 用户提出“实现 / 修复 / 重构 / 配置 / 修改”即视为对完成该任务所需**普通工作区写入、最小测试和非破坏性本地命令**的批准；不要在真正开始修改前再做形式化确认。
+- 已批准边界内的普通编辑、测试、lint、构建、临时产物处理可自主完成；只有实质扩大 scope、改变验收标准、跨到新的项目/远程环境或进入高风险边界时才再次询问。
+- 必须单独确认：改变 hypothesis / metrics / baselines / data-selection / statistics / protected scientific definitions；启动昂贵 formal/full-scale run；上传私有源码/数据；外部登录/付费/发布；Git commit/push/tag/PR；删除/覆盖正式结果。
+- 不可逆或高破坏操作默认拒绝（`sudo`、`git reset --hard`、`git clean`、force push、递归强制删除），除非用户明确要求修改安全策略本身。
+- SSH/MCP 是能力，不等于授权；只读公开网络检索无需审批。
+
+## 审查路由
+
+**一次 review gate = 一次 reviewer task。** 按风险在同一 task 内加载一个或多个 procedure skill；不为多个立场启动重复 reviewer，也不先由主代理自审再重复调用 reviewer。场景 → procedure 对照表、`experiment-reviewer` 强制项与升级判据见 `code-reviewer` skill。
+
+## 权限与运行时约束
+
+本 adapter 的权限模板见 `permissions.example.jsonc`；`research-guard`（破坏命令/密钥/正式实验门禁）与 `project-os-guard`（根目录双控制面/平行 canonical）提供运行时硬约束。安装与验证见仓库根 `README.md` 与 `scripts/doctor.py`。
+
+## 本机附加
+
+机器相关的快捷键/路径（如解释器位置、私有 venv）**不进入本仓库**；由使用者在自己的全局配置末尾追加，升级时保留。

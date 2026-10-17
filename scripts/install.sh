@@ -3,7 +3,7 @@
 # Research Agent OS — OpenCode adapter installer
 #
 # 幂等安装到 ~/.config/opencode（additive：只添加/更新本项目组件，保留用户已有组件）:
-#   AGENTS.md（CORE.md 装配）、agents/(5)、skills/(9)、plugins/(2)
+#   AGENTS.md（CORE.md 装配）、agents/(5)、skills/(9)、plugins/(3)、commands/(2)、scripts/(audit)
 #
 # 用法:
 #   ./scripts/install.sh             # 正常安装
@@ -119,6 +119,13 @@ work_agents="$(mktemp)"
 trap 'rm -f "$work_agents"' EXIT
 cat "$ADAPTER/AGENTS.md.header" > "$work_agents"
 cat "$CORE_MD" >> "$work_agents"
+
+# Preserve a user-local appendix (machine-specific paths/shortcuts) across reinstalls.
+if [[ -f "$CONFIG_DIR/AGENTS.md" ]] && grep -q "machine-local:begin" "$CONFIG_DIR/AGENTS.md"; then
+  printf '\n' >> "$work_agents"
+  sed -n '/<!-- machine-local:begin -->/,$p' "$CONFIG_DIR/AGENTS.md" >> "$work_agents"
+fi
+
 if [[ -f "$CONFIG_DIR/AGENTS.md" ]] && diff -q "$work_agents" "$CONFIG_DIR/AGENTS.md" >/dev/null 2>&1; then
   log "SKIP" "AGENTS.md (assembled) identical"
 elif [[ "$DRY_RUN" == "1" ]]; then
@@ -137,6 +144,8 @@ fi
 dir_install_items "agents"  "$ADAPTER/agents"  "$CONFIG_DIR/agents"
 dir_install_items "skills"  "$REPO_DIR/core/skills" "$CONFIG_DIR/skills"
 dir_install_items "plugins" "$ADAPTER/plugins" "$CONFIG_DIR/plugins"
+dir_install_items "commands" "$ADAPTER/commands" "$CONFIG_DIR/command"
+file_install "scripts/project_audit.py" "$REPO_DIR/scripts/project_audit.py" "$CONFIG_DIR/scripts/project_audit.py"
 
 echo
 echo "== Global config =="

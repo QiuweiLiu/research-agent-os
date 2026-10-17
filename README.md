@@ -62,9 +62,9 @@ research-agent-os/
 │   ├── project/              # Project OS templates: 6 control files + archive/
 │   └── skills/               # 9 procedure skills
 ├── adapters/
-│   └── opencode/             # OpenCode implementation: agents(5), plugins(2),
-│   │                         #   Trusted Mode permissions, AGENTS.md assembly
-├── scripts/                  # install.sh · doctor.py · init-project.py
+│   └── opencode/             # OpenCode implementation: agents(5), plugins(3),
+│   │                         #   commands(2), Trusted Mode permissions, AGENTS.md assembly
+├── scripts/                  # install.sh · doctor.py · init-project.py · project_audit.py
 ├── examples/                 # (how to bootstrap your first project)
 └── docs/                     # classification, model choice
 ```
@@ -87,8 +87,22 @@ per role (see `adapters/opencode/README.md`).
 - **continuity** — injects `.project/HANDOFF.md` into every context compaction
 - **research-guard** — defense-in-depth runtime guard: blocks destructive/secret-exposing actions; gates formal experiments
   on `EXPERIMENT_GATE.json` (`smoke_passed` / `ledger_registered` / `commit`)
+- **project-os-guard** — blocks root-level duplicate control files and parallel canonical docs
 - **Trusted Mode** — auto-allow ordinary workspace work; explicitly deny `sudo`,
   `rm -rf`, `git reset --hard`, `git clean`, force-push, env dumps, and key-file access
+
+### Project OS audit
+
+`scripts/project_audit.py` is a read-only health check for a project: control-plane budgets,
+root whitelist violations, duplicate control planes, parallel canonicals, backups, `.scratch` /
+`outputs` growth, archive usage, legacy files, and duplicate project titles.
+
+```bash
+python3 ~/.config/opencode/scripts/project_audit.py <project-root>
+python3 ~/.config/opencode/scripts/project_audit.py --discover ~/projects
+```
+
+Exit codes: `0` clean, `1` warnings, `2` failures. In OpenCode, `/project-audit` wraps it.
 
 ## Quick Start
 

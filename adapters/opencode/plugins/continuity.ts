@@ -23,10 +23,11 @@ export const ContinuityPlugin: Plugin = async ({ worktree, directory }) => {
 
       if (!source) return
 
-      // HANDOFF 应保持短小；异常超长时同时保留开头的 Goal/Verified 与结尾的 Open/Next。
-      const clipped = source.length <= 12000
+      // HANDOFF 应保持短小（目标 ≤4KB）。超过 6KB 说明它退化成了日志：
+      // 同时保留开头的 Goal/Verified 与结尾的 Open/Next，避免整段历史进入压缩上下文。
+      const clipped = source.length <= 6000
         ? source
-        : `${source.slice(0, 6000)}\n\n... [middle clipped] ...\n\n${source.slice(-6000)}`
+        : `${source.slice(0, 3000)}\n\n... [middle clipped] ...\n\n${source.slice(-3000)}`
 
       output.context.push(`
 ## Project continuity (${label})

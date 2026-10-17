@@ -35,7 +35,9 @@ EXPECTED_SKILLS = [
     "compute-budget", "reproducibility", "evidence-synthesizer",
     "failure-triage", "code-reviewer", "repo-architecture",
 ]
-EXPECTED_PLUGINS = ["continuity.ts", "research-guard.js"]
+EXPECTED_PLUGINS = ["continuity.ts", "research-guard.js", "project-os-guard.js"]
+EXPECTED_COMMANDS = ["project-audit.md", "project-compact.md"]
+EXPECTED_SCRIPTS = ["project_audit.py"]
 PROJECT_TEMPLATE_FILES = [
     "PROJECT.md", "STATE.md", "PLAN.md", "DECISIONS.md",
     "HANDOFF.md", "EXPERIMENT_GATE.json",
@@ -254,8 +256,19 @@ class Doctor:
 
         plugins_found = sorted(os.listdir(plugins)) if os.path.isdir(plugins) else []
         missing_plugins = [p for p in EXPECTED_PLUGINS if p not in plugins_found]
-        self.emit("FAIL" if missing_plugins else "PASS", "B", "adapter plugins (2)",
-                  not missing_plugins, f"missing: {missing_plugins}" if missing_plugins else "continuity.ts + research-guard.js")
+        self.emit("FAIL" if missing_plugins else "PASS", "B", "adapter plugins (3)",
+                  not missing_plugins, f"missing: {missing_plugins}" if missing_plugins else "continuity + research-guard + project-os-guard")
+
+        adapter_commands = os.path.join(adapters, "commands")
+        found_commands = set(os.listdir(adapter_commands)) if os.path.isdir(adapter_commands) else set()
+        missing_commands = [c for c in EXPECTED_COMMANDS if c not in found_commands]
+        self.emit("FAIL" if missing_commands else "PASS", "B", "adapter commands (2)",
+                  not missing_commands, f"missing: {missing_commands}" if missing_commands else "project-audit + project-compact")
+
+        found_scripts = set(os.listdir(os.path.join(repo, "scripts"))) if os.path.isdir(os.path.join(repo, "scripts")) else set()
+        missing_scripts = [x for x in EXPECTED_SCRIPTS if x not in found_scripts]
+        self.emit("FAIL" if missing_scripts else "PASS", "B", "audit script",
+                  not missing_scripts, f"missing: {missing_scripts}" if missing_scripts else "project_audit.py present")
 
         # ============ [C] Project OS ============
         print("== [C] Project OS ==")
@@ -439,9 +452,23 @@ class Doctor:
                 inst_plugins = os.path.join(install_dir, "plugins")
                 installed_plugins = set(os.listdir(inst_plugins)) if os.path.isdir(inst_plugins) else set()
                 missing_plugins = [p for p in EXPECTED_PLUGINS if p not in installed_plugins]
-                self.emit("FAIL" if missing_plugins else "PASS", "H", "Core plugins (2)",
+                self.emit("FAIL" if missing_plugins else "PASS", "H", "Core plugins (3)",
                           not missing_plugins,
-                          f"missing: {missing_plugins}" if missing_plugins else "continuity.ts + research-guard.js present")
+                          f"missing: {missing_plugins}" if missing_plugins else "continuity + research-guard + project-os-guard present")
+
+                inst_commands = os.path.join(install_dir, "command")
+                installed_commands = set(os.listdir(inst_commands)) if os.path.isdir(inst_commands) else set()
+                missing_commands = [c for c in EXPECTED_COMMANDS if c not in installed_commands]
+                self.emit("FAIL" if missing_commands else "PASS", "H", "Core commands (2)",
+                          not missing_commands,
+                          f"missing: {missing_commands}" if missing_commands else "project-audit + project-compact present")
+
+                inst_scripts = os.path.join(install_dir, "scripts")
+                installed_scripts = set(os.listdir(inst_scripts)) if os.path.isdir(inst_scripts) else set()
+                missing_scripts = [x for x in EXPECTED_SCRIPTS if x not in installed_scripts]
+                self.emit("FAIL" if missing_scripts else "PASS", "H", "Audit script",
+                          not missing_scripts,
+                          f"missing: {missing_scripts}" if missing_scripts else "project_audit.py present")
 
                 # opencode.json/jsonc
                 cfg_json = os.path.join(install_dir, "opencode.json")

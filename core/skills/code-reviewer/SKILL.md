@@ -84,4 +84,20 @@ For generated reports, notebooks, or experiment results, review both code and ar
 
 For security review, look for secrets, auth bypass, injection, unsafe deserialization, path traversal, insecure file permissions, and dependency or container exposure. Do not exploit systems; demonstrate risk with safe reasoning or local minimal examples.
 
+## Review routing (one gate = one reviewer task)
+
+Load one or more procedure skills inside the same reviewer task by risk. Never start duplicate reviewers for the same stance, and do not pre-run this Skill yourself before delegating.
+
+| Change | Procedure(s) |
+|---|---|
+| Pure logic / ordinary code | this Skill |
+| Data splitting / preprocessing / metrics / statistics / baseline | this Skill + `experiment-reviewer` |
+| Interface / config / cross-file (data-neutral) | this Skill |
+| Experiment plan / results | `experiment-reviewer` |
+| Long-project key delivery | this Skill or `experiment-reviewer`; artifact/fact consistency may go to `auditor` |
+
+`experiment-reviewer`'s mandatory data/statistics invariants (date-blocked reporting, pooled metrics not as the sole headline, leakage checks) are P0/P1 blockers, not style suggestions.
+
+If the adapter configures a scientific-arbitration role, escalate to it only for: hypothesis changes, causal design, contradictory key results, expensive run decisions, publication claims, or unresolved scientific disputes between lead/reviewer/auditor.
+
 ---
