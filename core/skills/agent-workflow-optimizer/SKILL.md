@@ -9,7 +9,7 @@ Use for long or multi-agent work and for Project OS hygiene. Follow the global C
 
 ## Startup
 
-1. Required startup bundle: `.project/HANDOFF.md` + `.project/STATE.md`. Read `.project/PLAN.md` before changing plans; consult `.project/DECISIONS.md` through its index.
+1. Required startup bundle: `.project/PROJECT.md` + `.project/HANDOFF.md` + `.project/STATE.md`. Read `.project/PLAN.md` before changing plans; consult `.project/DECISIONS.md` through its index.
 2. Budget for the startup bundle (~6k tokens total): project `AGENTS.md` 800, `PROJECT.md` 1000, `STATE.md` 1500, `PLAN.md` 1500, `HANDOFF.md` 700. Prefer a local tokenizer; otherwise label UTF-8 bytes / 4 as a rough estimate. Exceeding a budget needs justification, not truncation.
 3. The old "read all five files in full" habit is intentionally retired: it is what makes context grow. Read deeper only when the task needs it.
 4. Resolve conflicting progress/environment claims before rewriting state; a newer heading is not proof.

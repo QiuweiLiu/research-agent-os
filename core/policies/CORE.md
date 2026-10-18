@@ -45,7 +45,7 @@ inspect → plan → execute → verify → review → persist → handoff
   超限即压缩：先整包快照到 `.project/archive/YYYY-MM-DD_pre_compact/`，再重写为当前状态；压缩后必须复测。
 - **控制面唯一**：`.project/` 存在时，根目录不得再有 `PROJECT/STATE/PLAN/DECISIONS/HANDOFF.md`；不得创建 `plan_v2.md`、`summary_final.md`、`analysis_new.md` 等平行 canonical；迁移后旧副本移入 `.project/archive/YYYY-MM-DD_legacy_root/`。
 - **单副本**：一个项目只保留一个工作副本；发现多副本先报告，确认权威副本后其余归档，不静默删除。
-- **启动读取**：必读 `HANDOFF.md` + `STATE.md`；`PLAN.md` 在改动计划前读；`DECISIONS.md` 通过索引按需读。完整读取顺序、token 预算与估算方法见 `agent-workflow-optimizer` skill。
+- **启动读取**：必读 `PROJECT.md` + `HANDOFF.md` + `STATE.md`；`PLAN.md` 在改动计划前读；`DECISIONS.md` 通过索引按需读。完整读取顺序、token 预算与估算方法见 `agent-workflow-optimizer` skill。
 - **DECISIONS**：追加不删；超过 40KB 或 40 条时改为"索引 + 按月分册"（`DECISIONS.md` 只留 日期｜ID｜一句话｜分片链接，正文进 `decisions/YYYY-MM.md`）。
 - **控制面缺失**：先报告并请求初始化，不静默创建。旧状态文件（`PROJECT_STATE.md` 等）仅作 legacy 只读，迁移后不双写。
 - **放置与冗余**：根目录白名单、交付物归属表、备份/临时文件保留策略见 `agent-workflow-optimizer` skill；交付前用 adapter 安装的 `project_audit.py` 做只读审计。
